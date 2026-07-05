@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SIGA-ICT">
+<meta name="theme-color" content="#1a2b5e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>SIGA-ICT · Supervisão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════
+   SIGA-ICT · Design tokens
+══════════════════════════════════════════════════ */
+:root {
+  --teal:   #3ba99c;
+  --teal2:  #2189a0;
+  --navy:   #1a2b5e;
+  --navy2:  #0f1a42;
+  --dark:   #1a2035;
+  --slate:  #64748b;
+  --light:  #f0f4f8;
+  --white:  #ffffff;
+  --red:    #dc3545;
+  --yellow: #f59e0b;
+  --green:  #22c55e;
+  --radius: 14px;
+  --shadow: 0 2px 16px rgba(0,0,0,.09);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Poppins', sans-serif; background: var(--light); color: var(--dark); min-height: 100vh; }
+
+/* ══════════════════════════════════
+   LANDING
+══════════════════════════════════ */
+#landing {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #1a2b5e 0%, #0f1a42 60%, #0a1230 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 32px 18px;
+}
+.landing-title {
+  font-size: clamp(2.8rem, 9vw, 5rem);
+  font-weight: 900; color: white; letter-spacing: .1em; line-height: 1;
+  margin: 18px 0 8px; text-align: center;
+}
+.landing-sub {
+  font-size: clamp(.78rem, 1.8vw, .95rem);
+  color: rgba(255,255,255,.55); text-align: center; max-width: 500px;
+  line-height: 1.5; margin-bottom: 42px; font-weight: 300;
+}
+.role-cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; max-width: 780px; width: 100%; }
+.role-card {
+  flex: 1 1 200px; max-width: 240px; border-radius: 18px; padding: 28px 20px;
+  cursor: pointer; transition: transform .18s, box-shadow .18s;
+}
+.role-card:hover { transform: translateY(-5px); box-shadow: 0 14px 36px rgba(0,0,0,.35); }
+.role-district  { background: linear-gradient(145deg, #3ba99c, #1a7a90); color: white; }
+.role-provincial{ background: white; color: var(--dark); }
+.role-national  { background: linear-gradient(145deg, #2a3a6e, #1a2550); color: white; border: 1.5px solid rgba(255,255,255,.15); }
+.role-icon  { font-size: 2.4rem; margin-bottom: 12px; }
+.role-card h2   { font-size: 1.05rem; font-weight: 700; margin-bottom: 7px; line-height: 1.3; }
+.role-card p    { font-size: .76rem; opacity: .75; line-height: 1.5; }
+.role-provincial p { color: var(--slate); }
+.landing-sheets-link {
+  margin-top: 32px; display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 50px; padding: 9px 18px; color: rgba(255,255,255,.7);
+  font-size: .8rem; font-weight: 600; text-decoration: none; transition: background .15s;
+}
+.landing-sheets-link:hover { background: rgba(255,255,255,.14); color: white; }
+.prov-picker { display: none; margin-top: 16px; width: 100%; max-width: 340px; }
+.prov-picker.show { display: block; }
+.prov-picker label { display: block; color: rgba(255,255,255,.7); font-size: .78rem; font-weight: 600; margin-bottom: 6px; }
+.prov-picker select {
+  width: 100%; border: 1.5px solid rgba(255,255,255,.25); border-radius: 10px;
+  padding: 11px 13px; font-size: .92rem; font-family: 'Poppins', sans-serif;
+  background: rgba(255,255,255,.1); color: white; appearance: none;
+}
+.prov-picker select option { background: #1a2b5e; color: white; }
+.btn-continue {
+  margin-top: 10px; width: 100%; background: var(--teal); color: white; border: none;
+  border-radius: 10px; padding: 12px; font-size: .92rem; font-weight: 700;
+  font-family: 'Poppins', sans-serif; cursor: pointer;
+}
+
+/* ══════════════════════════════════
+   APP SHELL
+══════════════════════════════════ */
+#app { display: none; padding-bottom: 80px; }
+
+.app-header {
+  background: linear-gradient(135deg, #1a2b5e, #0f1a42); color: white;
+  padding: 13px 16px; display: flex; align-items: center; gap: 11px;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,.25);
+}
+.app-header-text h1  { font-size: 1.1rem; font-weight: 800; letter-spacing: .05em; }
+.app-header-text p   { font-size: .68rem; opacity: .7; font-weight: 300; }
+.header-right        { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.role-badge          { font-size: .68rem; font-weight: 700; padding: 4px 10px; border-radius: 50px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.badge-district      { background: var(--teal); color: white; }
+.badge-provincial    { background: #8b5cf6; color: white; }
+.badge-national      { background: var(--yellow); color: var(--dark); }
+.sync-badge {
+  background: rgba(255,255,255,.12); border-radius: 20px; padding: 4px 9px;
+  font-size: .68rem; font-weight: 600; display: flex; align-items: center; gap: 4px;
+  cursor: pointer; white-space: nowrap;
+}
+.sync-badge.has-pending { background: var(--yellow); color: var(--dark); }
+.sync-dot         { width: 7px; height: 7px; border-radius: 50%; background: #6ee7b7; }
+.sync-dot.offline { background: #fca5a5; }
+.sheets-link {
+  display: flex; align-items: center; gap: 4px; color: rgba(255,255,255,.65);
+  font-size: .7rem; font-weight: 600; text-decoration: none;
+  background: rgba(255,255,255,.08); border-radius: 50px; padding: 4px 10px;
+  transition: background .15s; white-space: nowrap;
+}
+.sheets-link:hover { background: rgba(255,255,255,.18); color: white; }
+.back-btn {
+  background: rgba(255,255,255,.1); border: none; color: white; border-radius: 50%;
+  width: 30px; height: 30px; font-size: 1rem; cursor: pointer; flex-shrink: 0;
+}
+
+/* ── Tab bar ── */
+.tab-bar { display: flex; background: var(--dark); padding: 0 16px; }
+.tab-btn {
+  flex: 1; padding: 12px 8px; text-align: center; color: rgba(255,255,255,.5);
+  font-size: .82rem; font-weight: 600; font-family: 'Poppins', sans-serif;
+  background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent;
+  transition: all .15s;
+}
+.tab-btn.active  { color: var(--teal); border-bottom-color: var(--teal); }
+.tab-content     { display: none; }
+.tab-content.active { display: block; }
+
+/* ── Score bar (form only) ── */
+.score-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; background: var(--dark); color: white;
+  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+  z-index: 99; box-shadow: 0 -4px 20px rgba(0,0,0,.2);
+}
+.score-bar-modules { display: flex; gap: 6px; flex-wrap: wrap; }
+.score-chip        { background: rgba(255,255,255,.1); border-radius: 20px; padding: 3px 9px; font-size: .7rem; font-weight: 600; }
+.score-chip.red    { background: var(--red); }
+.score-chip.yellow { background: var(--yellow); color: var(--dark); }
+.score-chip.green  { background: var(--green); }
+.score-overall     { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 5px; }
+
+/* ══════════════════════════════════
+   FORM CARDS
+══════════════════════════════════ */
+.container { max-width: 680px; margin: 0 auto; padding: 14px; }
+.card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+.card-header {
+  padding: 13px 16px; display: flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none; border-bottom: 1px solid #f1f5f9;
+}
+.card-header:hover { background: #f8fafc; }
+.module-badge   { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .9rem; flex-shrink: 0; }
+.badge-a        { background: #e0f2fe; color: #0369a1; }
+.badge-b        { background: #fee2e2; color: #b91c1c; }
+.badge-c        { background: #d1fae5; color: #047857; }
+.badge-d        { background: #ede9fe; color: #6d28d9; }
+.badge-meta     { background: #f1f5f9; color: var(--slate); }
+.badge-notes    { background: #fef3c7; color: #92400e; }
+.card-title     { flex: 1; }
+.card-title h3  { font-size: .9rem; font-weight: 700; }
+.card-title p   { font-size: .71rem; color: var(--slate); margin-top: 2px; }
+.card-chevron   { color: var(--slate); transition: transform .2s; }
+.card.open .card-chevron { transform: rotate(180deg); }
+.card-body      { padding: 14px 16px; display: none; }
+.card.open .card-body { display: block; }
+
+.field          { margin-bottom: 14px; }
+.field label    { display: block; font-size: .76rem; font-weight: 600; color: var(--slate); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+.field input, .field select, .field textarea {
+  width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  padding: 10px 12px; font-size: .9rem; font-family: 'Poppins', sans-serif;
+  color: var(--dark); background: var(--white); appearance: none; transition: border-color .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(59,169,156,.15);
+}
+.field textarea { resize: vertical; min-height: 60px; }
+.row-2          { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.divider        { height: 1px; background: #f1f5f9; margin: 3px 0 14px; }
+.section-label  { font-size: .7rem; font-weight: 700; color: var(--slate); text-transform: uppercase; letter-spacing: .08em; margin: 16px 0 8px; }
+
+.question-block { margin-bottom: 13px; }
+.question-text  { font-size: .85rem; font-weight: 500; color: var(--dark); margin-bottom: 6px; line-height: 1.4; }
+.toggle-group   { display: flex; gap: 6px; flex-wrap: wrap; }
+.toggle-btn {
+  padding: 7px 18px; border-radius: 50px; border: 2px solid #e2e8f0;
+  background: var(--white); font-size: .82rem; font-weight: 600;
+  font-family: 'Poppins', sans-serif; cursor: pointer; transition: all .15s; color: var(--slate);
+}
+.toggle-btn.active-sim { background: #dcfce7; border-color: var(--green); color: #15803d; }
+.toggle-btn.active-nao { background: #fee2e2; border-color: var(--red);   color: var(--red); }
+.toggle-btn.active-na  { background: #f1f5f9; border-color: #cbd5e1;      color: var(--slate); }
+.scale-group { display: flex; gap: 4px; }
+.scale-btn {
+  flex: 1; padding: 8px 2px; border-radius: 9px; border: 2px solid #e2e8f0;
+  background: var(--white); font-size: .7rem; font-weight: 600;
+  font-family: 'Poppins', sans-serif; cursor: pointer; text-align: center;
+  color: var(--slate); line-height: 1.2;
+}
+.scale-btn.s1.active { background: #fee2e2; border-color: var(--red);    color: var(--red); }
+.scale-btn.s2.active { background: #fef9c3; border-color: var(--yellow); color: #92400e; }
+.scale-btn.s3.active { background: #d1fae5; border-color: #10b981;       color: #047857; }
+.scale-btn.s4.active { background: #dbeafe; border-color: #3b82f6;       color: #1d4ed8; }
+
+.critical-warning {
+  background: #fff0f0; border: 2px solid var(--red); border-radius: 10px;
+  padding: 10px 13px; font-size: .79rem; color: var(--red);
+  font-weight: 600; margin-bottom: 13px; display: flex; gap: 6px; align-items: flex-start;
+}
+.btn-primary {
+  width: 100%; background: linear-gradient(135deg, var(--teal), var(--teal2));
+  color: white; border: none; border-radius: var(--radius); padding: 14px;
+  font-size: .96rem; font-weight: 700; font-family: 'Poppins', sans-serif;
+  cursor: pointer; transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .91; }
+.btn-secondary {
+  width: 100%; background: var(--white); color: var(--teal);
+  border: 2px solid var(--teal); border-radius: var(--radius); padding: 11px;
+  font-size: .88rem; font-weight: 700; font-family: 'Poppins', sans-serif;
+  cursor: pointer; margin-top: 8px;
+}
+.pending-panel { background: #fef3c7; border-radius: var(--radius); padding: 11px 14px; margin-bottom: 13px; display: none; }
+.pending-panel.show { display: block; }
+.pending-panel h4   { font-size: .84rem; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+.pending-panel p    { font-size: .77rem; color: #78350f; }
+.pending-list       { margin-top: 5px; font-size: .75rem; color: #78350f; }
+
+/* ══════════════════════════════════
+   RESULT MODAL
+══════════════════════════════════ */
+#result-panel {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  z-index: 200; align-items: center; justify-content: center; padding: 18px;
+}
+#result-panel.show { display: flex; }
+.result-card {
+  background: white; border-radius: 20px; padding: 24px 20px;
+  width: 100%; max-width: 420px; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25); max-height: 90vh; overflow-y: auto;
+}
+.result-emoji   { font-size: 3.2rem; margin-bottom: 4px; }
+.result-score   { font-size: 3rem; font-weight: 900; line-height: 1; margin-bottom: 3px; }
+.result-label   { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.result-meta    { font-size: .76rem; color: var(--slate); margin-bottom: 16px; }
+.result-modules { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.mod-result     { border-radius: 10px; padding: 8px; font-size: .76rem; font-weight: 600; }
+.mod-result .mod-score { font-size: 1.2rem; font-weight: 800; }
+.result-sync-msg { font-size: .79rem; padding: 8px 12px; border-radius: 10px; margin-bottom: 13px; font-weight: 600; }
+.sync-ok     { background: #dcfce7; color: #15803d; }
+.sync-queued { background: #fef3c7; color: #92400e; }
+
+/* ══════════════════════════════════
+   DASHBOARD (shared)
+══════════════════════════════════ */
+.dash-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; margin-bottom: 16px; }
+.stat-card  { background: var(--white); border-radius: 12px; padding: 13px 8px; text-align: center; box-shadow: var(--shadow); }
+.stat-num   { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+.stat-lbl   { font-size: .67rem; font-weight: 600; color: var(--slate); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+.stat-total .stat-num { color: var(--dark); }
+.stat-red   .stat-num { color: var(--red); }
+.stat-yel   .stat-num { color: var(--yellow); }
+.stat-grn   .stat-num { color: var(--green); }
+
+.dash-filter { display: flex; gap: 7px; margin-bottom: 13px; flex-wrap: wrap; }
+.filter-chip {
+  padding: 6px 13px; border-radius: 50px; border: 2px solid #e2e8f0;
+  background: var(--white); font-size: .77rem; font-weight: 600;
+  cursor: pointer; color: var(--slate); font-family: 'Poppins', sans-serif; transition: all .15s;
+}
+.filter-chip.f-all { background: var(--dark);   border-color: var(--dark);   color: white; }
+.filter-chip.f-red { background: var(--red);    border-color: var(--red);    color: white; }
+.filter-chip.f-yel { background: var(--yellow); border-color: var(--yellow); color: var(--dark); }
+.filter-chip.f-grn { background: var(--green);  border-color: var(--green);  color: white; }
+
+.visit-card { background: var(--white); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 10px; overflow: hidden; }
+.visit-card-header { padding: 12px 15px; display: flex; align-items: center; gap: 11px; cursor: pointer; }
+.tl-dot        { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
+.tl-dot.RED    { background: var(--red); }
+.tl-dot.YELLOW { background: var(--yellow); }
+.tl-dot.GREEN  { background: var(--green); }
+.visit-info    { flex: 1; min-width: 0; }
+.visit-facility { font-size: .87rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visit-sub     { font-size: .71rem; color: var(--slate); margin-top: 1px; }
+.visit-score-col { text-align: right; flex-shrink: 0; }
+.visit-score-big { font-size: 1.25rem; font-weight: 800; }
+.visit-score-big.RED    { color: var(--red); }
+.visit-score-big.YELLOW { color: var(--yellow); }
+.visit-score-big.GREEN  { color: var(--green); }
+.visit-tl-label { font-size: .64rem; font-weight: 700; }
+.visit-tl-label.RED    { color: var(--red); }
+.visit-tl-label.YELLOW { color: var(--yellow); }
+.visit-tl-label.GREEN  { color: var(--green); }
+.visit-detail  { display: none; padding: 0 15px 13px; border-top: 1px solid #f1f5f9; }
+.visit-detail.open { display: block; }
+.mod-bars      { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 11px 0; }
+.mod-bar-item  { background: #f8fafc; border-radius: 9px; padding: 8px 10px; }
+.mod-bar-label { font-size: .68rem; font-weight: 600; color: var(--slate); margin-bottom: 4px; }
+.mod-bar-track { height: 7px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+.mod-bar-fill  { height: 100%; border-radius: 4px; }
+.mod-bar-val   { font-size: .77rem; font-weight: 700; margin-top: 3px; }
+.visit-notes-section { margin-top: 9px; font-size: .77rem; color: var(--slate); }
+.visit-notes-section strong { color: var(--dark); }
+.critical-badge { background: #fee2e2; color: var(--red); font-size: .67rem; font-weight: 700; padding: 2px 7px; border-radius: 50px; margin-left: 5px; }
+.empty-dash     { text-align: center; padding: 44px 18px; color: var(--slate); }
+.empty-dash .empty-icon { font-size: 2.8rem; margin-bottom: 10px; }
+.empty-dash p   { font-size: .86rem; line-height: 1.6; }
+.loading-msg    { text-align: center; padding: 32px; color: var(--slate); font-size: .85rem; }
+
+.dash-refresh {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--white); border-radius: 10px; padding: 11px 14px;
+  margin-bottom: 14px; box-shadow: var(--shadow); font-size: .8rem;
+}
+.refresh-info        { color: var(--slate); }
+.refresh-info strong { color: var(--dark); display: block; font-size: .85rem; }
+.btn-refresh {
+  background: linear-gradient(135deg, var(--teal), var(--teal2)); color: white;
+  border: none; border-radius: 8px; padding: 8px 14px; font-size: .78rem;
+  font-weight: 700; font-family: 'Poppins', sans-serif; cursor: pointer; white-space: nowrap;
+}
+.sheets-panel   { background: white; border-radius: 12px; box-shadow: var(--shadow); padding: 20px; text-align: center; }
+.sheets-panel .sheets-icon { font-size: 3rem; margin-bottom: 10px; }
+.sheets-panel h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.sheets-panel p  { font-size: .8rem; color: var(--slate); margin-bottom: 16px; line-height: 1.5; }
+.btn-sheets {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #0f9d58; color: white; border: none; border-radius: 10px;
+  padding: 12px 22px; font-size: .9rem; font-weight: 700;
+  font-family: 'Poppins', sans-serif; cursor: pointer; text-decoration: none;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     LANDING PAGE
+══════════════════════════════════ -->
+<div id="landing">
+  <svg width="64" height="64" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="96" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3ba99c"/><stop offset="50%" stop-color="#2189a0"/><stop offset="100%" stop-color="#1a7a90"/>
+    </linearGradient></defs>
+    <rect width="96" height="96" rx="22" fill="url(#lg)"/>
+    <rect x="14" y="58" width="12" height="24" rx="3" fill="rgba(255,255,255,.88)"/>
+    <rect x="32" y="44" width="12" height="38" rx="3" fill="rgba(255,255,255,.88)"/>
+    <rect x="50" y="28" width="12" height="54" rx="3" fill="rgba(255,255,255,.88)"/>
+    <path d="M20 54 L38 40 L56 26 L74 16" stroke="rgba(255,255,255,.55)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="74" cy="16" r="7" fill="white"/><circle cx="74" cy="16" r="4" fill="#3ba99c"/>
+  </svg>
+  <div class="landing-title">SIGA-ICT</div>
+  <p class="landing-sub">
+    Sistema Inteligente de Gestão e Acompanhamento · Index Case Testing<br>
+    JHPIEGO Moçambique · PEPFAR/USAID RISE · Manica &amp; Zambézia
+  </p>
+
+  <div class="role-cards">
+    <div class="role-card role-district" onclick="selectRole('district')">
+      <div class="role-icon">🏥</div>
+      <h2>Supervisor Distrital</h2>
+      <p>Formulário de supervisão &amp; registo de visitas ao campo</p>
+    </div>
+    <div class="role-card role-provincial" onclick="showProvincePicker()">
+      <div class="role-icon">📊</div>
+      <h2>Supervisor Provincial</h2>
+      <p>Dashboard provincial &amp; scorecard de fiabilidade</p>
+    </div>
+    <div class="role-card role-national" onclick="selectRole('national')">
+      <div class="role-icon">🌍</div>
+      <h2>Assessor Técnico Nacional</h2>
+      <p>Vista nacional agregada · Manica &amp; Zambézia</p>
+    </div>
+  </div>
+
+  <div class="prov-picker" id="prov-picker">
+    <label>Seleccione a sua Província</label>
+    <select id="landing-province">
+      <option value="">Seleccionar...</option>
+      <option value="Manica">Manica</option>
+      <option value="Zambezia">Zambézia</option>
+    </select>
+    <button class="btn-continue" onclick="selectRole('provincial')">Continuar →</button>
+  </div>
+
+  <a class="landing-sheets-link" href="https://docs.google.com/spreadsheets/d/1mBUjyiU_M35njJMjBbvo9ibZdhoLAwqzMEJWE_xi7rY" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+    Base de Dados Central · Google Sheets
+  </a>
+</div>
+
+<!-- ══════════════════════════════════
+     APP SHELL
+══════════════════════════════════ -->
+<div id="app">
+
+  <!-- Header -->
+  <div class="app-header">
+    <button class="back-btn" onclick="goBack()">←</button>
+    <svg width="34" height="34" viewBox="0 0 96 96" fill="none">
+      <rect width="96" height="96" rx="20" fill="rgba(255,255,255,.12)"/>
+      <rect x="14" y="58" width="12" height="24" rx="3" fill="rgba(255,255,255,.88)"/>
+      <rect x="32" y="44" width="12" height="38" rx="3" fill="rgba(255,255,255,.88)"/>
+      <rect x="50" y="28" width="12" height="54" rx="3" fill="rgba(255,255,255,.88)"/>
+      <path d="M20 54 L38 40 L56 26 L74 16" stroke="rgba(255,255,255,.55)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="74" cy="16" r="7" fill="white"/><circle cx="74" cy="16" r="4" fill="#3ba99c"/>
+    </svg>
+    <div class="app-header-text">
+      <h1>SIGA-ICT</h1>
+      <p id="header-scope-text">Supervisão ICT</p>
+    </div>
+    <div class="header-right">
+      <span class="role-badge" id="role-badge">—</span>
+      <div class="sync-badge" id="sync-badge" onclick="trySyncQueue()">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-label">Online</span>
+      </div>
+      <a class="sheets-link" href="https://docs.google.com/spreadsheets/d/1mBUjyiU_M35njJMjBbvo9ibZdhoLAwqzMEJWE_xi7rY" target="_blank">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+        Sheets
+      </a>
+    </div>
+  </div>
+
+  <!-- District tabs -->
+  <div id="district-tabs" class="tab-bar" style="display:none">
+    <button class="tab-btn" onclick="switchTab('form',this)">📋 Formulário</button>
+    <button class="tab-btn" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+  </div>
+
+  <!-- Provincial / National tabs -->
+  <div id="upper-tabs" class="tab-bar" style="display:none">
+    <button class="tab-btn" onclick="switchTab('upper-dash',this)">📊 Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('upper-sheets',this)">🔗 Google Sheets</button>
+  </div>
+
+  <!-- ── TAB: Form ── -->
+  <div id="tab-form" class="tab-content">
+  <div class="container">
+    <div class="pending-panel" id="pending-panel">
+      <h4>📤 Visitas por sincronizar</h4>
+      <p>Guardadas localmente — sincronizarão quando houver internet.</p>
+      <div class="pending-list" id="pending-list"></div>
+      <button class="btn-secondary" style="margin-top:7px;font-size:.8rem;padding:8px" onclick="trySyncQueue()">🔄 Sincronizar agora</button>
+    </div>
+
+    <div class="section-label">Informação da visita</div>
+    <div class="card open" id="card-meta">
+      <div class="card-header" onclick="toggleCard('meta')">
+        <div class="module-badge badge-meta">📋</div>
+        <div class="card-title"><h3>Dados da Visita</h3><p>Supervisor, US, data, conselheiro</p></div>
+        <span class="card-chevron">▾</span>
+      </div>
+      <div class="card-body">
+        <div class="field"><label>Nome do Supervisor</label><input type="text" id="supervisor_name" placeholder="Nome completo" oninput="autosave()"></div>
+        <div class="row-2">
+          <div class="field"><label>Província</label>
+            <select id="province" onchange="populateDistricts();autosave()">
+              <option value="">Seleccionar...</option>
+              <option>Manica</option>
+              <option>Zambezia</option>
+            </select>
+          </div>
+          <div class="field"><label>Distrito</label>
+            <select id="district" onchange="populateFacilities();autosave()">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Unidade Sanitária</label>
+          <select id="facility" onchange="autosave()"><option value="">Seleccionar...</option></select>
+        </div>
+        <div class="row-2">
+          <div class="field"><label>Data da Visita</label><input type="date" id="visit_date" oninput="autosave()"></div>
+          <div class="field"><label>Tipo</label>
+            <select id="visit_type" onchange="autosave()">
+              <option value="routine">Rotina</option>
+              <option value="priority">Prioritária</option>
+              <option value="follow_up">Seguimento</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Nome do Conselheiro</label><input type="text" id="counselor_name" placeholder="Nome do conselheiro" oninput="autosave()"></div>
+      </div>
+    </div>
+
+    <div class="section-label">Módulos de Observação</div>
+    <div class="card" id="card-a">
+      <div class="card-header" onclick="toggleCard('a')">
+        <div class="module-badge badge-a">A</div>
+        <div class="card-title"><h3>Módulo A · Consentimento e Confidencialidade</h3><p>Peso: 15% · 6 itens</p></div>
+        <span class="card-chevron">▾</span>
+      </div>
+      <div class="card-body">
+        <div id="items-a"></div>
+        <div class="field" style="margin-top:10px"><label>Notas</label><textarea id="a_notes" placeholder="Observações..." oninput="autosave()"></textarea></div>
+      </div>
+    </div>
+
+    <div class="card" id="card-b">
+      <div class="card-header" onclick="toggleCard('b')">
+        <div class="module-badge badge-b">B</div>
+        <div class="card-title"><h3>Módulo B · Protocolo Crítico</h3><p>Peso: 25% · Qualquer NÃO = INSUFICIENTE</p></div>
+        <span class="card-chevron">▾</span>
+      </div>
+      <div class="card-body">
+        <div class="critical-warning">⚠️ Qualquer NÃO resulta em classificação INSUFICIENTE (Falha Crítica).</div>
+        <div id="items-b"></div>
+        <div class="field" style="margin-top:10px"><label>Notas</label><textarea id="b_notes" placeholder="Observações..." oninput="autosave()"></textarea></div>
+      </div>
+    </div>
+
+    <div class="card" id="card-c">
+      <div class="card-header" onclick="toggleCard('c')">
+        <div class="module-badge badge-c">C</div>
+        <div class="card-title"><h3>Módulo C · Qualidade Clínica e Elicitação</h3><p>Peso: 35% · Escala 1–4</p></div>
+        <span class="card-chevron">▾</span>
+      </div>
+      <div class="card-body">
+        <p style="font-size:.75rem;color:var(--slate);margin-bottom:11px"><strong>1</strong> Insuficiente · <strong>2</strong> Em desenvolvimento · <strong>3</strong> Adequado · <strong>4</strong> Excelente</p>
+        <div id="items-c"></div>
+        <div class="field" style="margin-top:10px"><label>Notas</label><textarea id="c_notes" placeholder="Observações..." oninput="autosave()"></textarea></div>
+      </div>
+    </div>
+
+    <div class="card" id="card-d">
+      <div class="card-header" onclick="toggleCard('d')">
+        <div class="module-badge badge-d">D</div>
+        <div class="card-title"><h3>Módulo D · Registos e Qualidade de Dados</h3><p>Peso: 25% · 4 itens</p></div>
+        <span class="card-chevron">▾</span>
+      </div>
+      <div class="card-body">
+        <div id="items-d"></div>
+        <div class="field" style="margin-top:10px"><label>Notas</label><textarea id="d_notes" placeholder="Observações..." oninput="autosave()"></textarea></div>
+      </div>
+    </div>
+
+    <div class="card" id="card-notes">
+      <div class="card-header" onclick="toggleCard('notes')">
+        <div class="module-badge badge-notes">✏️</div>
+        <div class="card-title"><h3>Resumo e Acções</h3><p>Pontos fortes, áreas de melhoria, acções acordadas</p></div>
+        <span class="card-chevron">▾</span>
+      </div>
+      <div class="card-body">
+        <div class="field"><label>Pontos Fortes</label><textarea id="strengths" placeholder="O que o conselheiro faz bem..." oninput="autosave()"></textarea></div>
+        <div class="field"><label>Áreas de Melhoria</label><textarea id="improvements" placeholder="O que precisa de melhorar..." oninput="autosave()"></textarea></div>
+        <div class="field"><label>Acções Acordadas</label><textarea id="agreed_actions" placeholder="Acções específicas acordadas..." style="min-height:72px" oninput="autosave()"></textarea></div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="submitForm()">✅ Submeter Visita de Supervisão</button>
+    <p style="text-align:center;font-size:.71rem;color:var(--slate);margin-top:7px">Guardado localmente · sincronização automática com Google Sheets</p>
+  </div>
+  </div><!-- /tab-form -->
+
+  <!-- ── TAB: District Dashboard ── -->
+  <div id="tab-dashboard" class="tab-content">
+  <div class="container">
+    <div class="dash-stats">
+      <div class="stat-card stat-total"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-card stat-red">  <div class="stat-num" id="s-red">0</div>  <div class="stat-lbl">🔴 Insuf.</div></div>
+      <div class="stat-card stat-yel">  <div class="stat-num" id="s-yel">0</div>  <div class="stat-lbl">🟡 Desenv.</div></div>
+      <div class="stat-card stat-grn">  <div class="stat-num" id="s-grn">0</div>  <div class="stat-lbl">🟢 Bom</div></div>
+    </div>
+    <div class="dash-filter">
+      <button class="filter-chip f-all" onclick="filterDash('ALL',this)">Todos</button>
+      <button class="filter-chip"       onclick="filterDash('RED',this)">🔴 Insuf.</button>
+      <button class="filter-chip"       onclick="filterDash('YELLOW',this)">🟡 Em Desenv.</button>
+      <button class="filter-chip"       onclick="filterDash('GREEN',this)">🟢 Bom</button>
+    </div>
+    <div id="dash-visits"></div>
+  </div>
+  </div>
+
+  <!-- ── TAB: Provincial / National Dashboard ── -->
+  <div id="tab-upper-dash" class="tab-content">
+  <div class="container">
+    <div class="dash-refresh">
+      <div class="refresh-info">
+        <strong id="refresh-title">Dashboard</strong>
+        <span id="refresh-last">Dados locais + Google Sheets</span>
+      </div>
+      <button class="btn-refresh" onclick="fetchAndRenderUpperDash()">🔄 Actualizar</button>
+    </div>
+    <div class="dash-stats">
+      <div class="stat-card stat-total"><div class="stat-num" id="u-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-card stat-red">  <div class="stat-num" id="u-red">0</div>  <div class="stat-lbl">🔴 Insuf.</div></div>
+      <div class="stat-card stat-yel">  <div class="stat-num" id="u-yel">0</div>  <div class="stat-lbl">🟡 Desenv.</div></div>
+      <div class="stat-card stat-grn">  <div class="stat-num" id="u-grn">0</div>  <div class="stat-lbl">🟢 Bom</div></div>
+    </div>
+    <div class="dash-filter">
+      <button class="filter-chip f-all" onclick="filterUpperDash('ALL',this)">Todos</button>
+      <button class="filter-chip"       onclick="filterUpperDash('RED',this)">🔴 Insuf.</button>
+      <button class="filter-chip"       onclick="filterUpperDash('YELLOW',this)">🟡 Em Desenv.</button>
+      <button class="filter-chip"       onclick="filterUpperDash('GREEN',this)">🟢 Bom</button>
+    </div>
+    <div id="upper-dash-visits"></div>
+  </div>
+  </div>
+
+  <!-- ── TAB: Google Sheets ── -->
+  <div id="tab-upper-sheets" class="tab-content">
+  <div class="container">
+    <div class="sheets-panel">
+      <div class="sheets-icon">📊</div>
+      <h3>Base de Dados Central</h3>
+      <p>Todas as visitas de supervisão são guardadas no Google Sheets.<br>Aceda para ver dados de todas as províncias, exportar e analisar.</p>
+      <a class="btn-sheets" href="https://docs.google.com/spreadsheets/d/1mBUjyiU_M35njJMjBbvo9ibZdhoLAwqzMEJWE_xi7rY" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+        Abrir Google Sheets
+      </a>
+      <p style="margin-top:18px;font-size:.75rem;color:var(--slate)">
+        Separador: <strong>Visits</strong> &nbsp;·&nbsp;
+        ID: <code style="font-size:.7rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">1mBUjyiU_M35njJMjBbvo9ibZdhoLAwqzMEJWE_xi7rY</code>
+      </p>
+    </div>
+  </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Result modal -->
+<div id="result-panel">
+  <div class="result-card">
+    <div class="result-emoji" id="r-emoji">🟢</div>
+    <div class="result-score" id="r-score">0%</div>
+    <div class="result-label" id="r-label">BOM</div>
+    <div class="result-meta"  id="r-meta"></div>
+    <div class="result-modules" id="r-modules"></div>
+    <div class="result-sync-msg" id="r-sync-msg"></div>
+    <button class="btn-primary" onclick="closeResult()">Nova Visita</button>
+    <button class="btn-secondary" onclick="closeResult();switchTab('dashboard',document.querySelectorAll('#district-tabs .tab-btn')[1])">Ver Dashboard</button>
+  </div>
+</div>
+
+<!-- Sticky score bar -->
+<div class="score-bar" id="score-bar" style="display:none">
+  <div class="score-bar-modules">
+    <span class="score-chip" id="chip-a">A —</span>
+    <span class="score-chip" id="chip-b">B —</span>
+    <span class="score-chip" id="chip-c">C —</span>
+    <span class="score-chip" id="chip-d">D —</span>
+  </div>
+  <div class="score-overall" id="score-overall">—%</div>
+</div>
+
+<!-- ── JS modules (load order matters) ── -->
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/form.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
