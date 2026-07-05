@@ -3,7 +3,7 @@
    Cache-first for app shell; network-first for API calls.
 ══════════════════════════════════════════════════ */
 
-const CACHE_NAME = 'siga-ict-v2';
+const CACHE_NAME = 'siga-ict-v4';
 
 /* Files to cache on install (the full app shell) */
 const APP_SHELL = [

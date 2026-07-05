@@ -223,6 +223,53 @@ function submitForm() {
   sendToSheets(payload);
 }
 
+/* ── Build failing fields breakdown ── */
+function buildFailingFields(s) {
+  const blocks = [];
+
+  // Module A — items answered NÃO
+  if (s.scoreA < THRESHOLD_GREEN) {
+    const failed = MOD_A.filter(i => answers[i.id] === 'Nao');
+    if (failed.length) blocks.push({
+      mod: 'A', label: 'Consentimento e Confidencialidade',
+      items: failed.map(i => i.text),
+      isRed: s.scoreA < THRESHOLD_YELLOW,
+    });
+  }
+
+  // Module B — critical items answered NÃO
+  if (s.bCriticalFail || s.scoreB < THRESHOLD_GREEN) {
+    const failed = MOD_B.filter(i => answers[i.id] === 'Nao');
+    if (failed.length) blocks.push({
+      mod: 'B', label: 'Protocolo Crítico ⚠',
+      items: failed.map(i => i.text),
+      isRed: true,
+    });
+  }
+
+  // Module C — items scored 1 or 2
+  if (s.scoreC < THRESHOLD_GREEN) {
+    const poor = MOD_C.filter(i => answers[i.id] !== undefined && answers[i.id] !== null && Number(answers[i.id]) <= 2);
+    if (poor.length) blocks.push({
+      mod: 'C', label: 'Qualidade Clínica e Elicitação',
+      items: poor.map(i => `${i.text}  [${answers[i.id]}/4]`),
+      isRed: s.scoreC < THRESHOLD_YELLOW,
+    });
+  }
+
+  // Module D — items answered NÃO
+  if (s.scoreD < THRESHOLD_GREEN) {
+    const failed = MOD_D.filter(i => answers[i.id] === 'Nao');
+    if (failed.length) blocks.push({
+      mod: 'D', label: 'Registos e Qualidade de Dados',
+      items: failed.map(i => i.text),
+      isRed: s.scoreD < THRESHOLD_YELLOW,
+    });
+  }
+
+  return blocks;
+}
+
 /* ── Show result modal ── */
 function showResult(s, p) {
   const fmt = v => Math.round(v * 100) + '%';
@@ -250,12 +297,32 @@ function showResult(s, p) {
          <div style="font-size:0.7rem">${l}<br><span style="opacity:.7">(${w})</span></div>
        </div>`).join('');
 
+  // ── Failing fields breakdown ──────────────────────────
+  const failEl = document.getElementById('r-failures');
+  if (tl !== 'GREEN') {
+    const blocks = buildFailingFields(s);
+    if (blocks.length) {
+      const titleDiv = '<div style="font-size:.74rem;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Campos com falha / pontuação baixa</div>';
+      const blockHtml = blocks.map(b => {
+        const bg  = b.isRed ? '#fee2e2' : '#fef9c3';
+        const clr = b.isRed ? '#b91c1c' : '#92400e';
+        const itemsHtml = b.items.map(item => '<div class="fail-item" style="color:' + clr + '">' + item + '</div>').join('');
+        return '<div class="fail-block" style="background:' + bg + '"><div class="fail-block-title" style="color:' + clr + '">Módulo ' + b.mod + ' — ' + b.label + '</div>' + itemsHtml + '</div>';
+      }).join('');
+      failEl.innerHTML = titleDiv + blockHtml;
+    } else {
+      failEl.innerHTML = '';
+    }
+  } else {
+    failEl.innerHTML = '';
+  }
+
   if (s.bCriticalFail) {
     const el = document.getElementById('r-sync-msg');
-    el.textContent = '⚠️ FALHA CRÍTICA — Módulo B. Escalação recomendada.';
+    el.textContent = 'FALHA CRITICA — Módulo B. Escalação recomendada.';
     el.style.cssText = 'background:#fee2e2;color:#b91c1c;padding:8px 12px;border-radius:10px;margin-bottom:13px;font-weight:600;font-size:.79rem';
   } else {
-    document.getElementById('r-sync-msg').textContent = '⏳ A enviar para Google Sheets...';
+    document.getElementById('r-sync-msg').textContent = 'A enviar para Google Sheets...';
     document.getElementById('r-sync-msg').className   = 'result-sync-msg sync-queued';
   }
 
@@ -268,7 +335,7 @@ function closeResult() {
 
   // Clear counselor-specific fields only (keep supervisor/facility for next visit)
   document.getElementById('counselor_name').value = '';
-  ['a','b','c','d'].forEach(m => { document.getElementById(`${m}_notes`).value = ''; });
+  ['a','b','c','d'].forEach(m => { document.getElementById(m + '_notes').value = ''; });
   document.getElementById('strengths').value      = '';
   document.getElementById('improvements').value   = '';
   document.getElementById('agreed_actions').value = '';

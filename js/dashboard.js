@@ -85,6 +85,8 @@ function filterUpperDash(f, btn) {
 
 function renderUpperDashboard() {
   _updateStats('u', upperData);
+  buildSupervisorCoverage(upperData);
+  buildCounselorTrends(upperData);
 
   const filtered  = upperDashFilter === 'ALL' ? upperData : upperData.filter(v => v.traffic_light === upperDashFilter);
   const container = document.getElementById('upper-dash-visits');
@@ -100,6 +102,164 @@ function renderUpperDashboard() {
   }
 
   container.innerHTML = filtered.map((v, i) => renderVisitCard(v, i, 'u')).join('');
+}
+
+/* ══════════════════════════════════════════════════
+   PROVINCIAL PANEL 1 — Supervisor Coverage
+   Shows how many visits each district supervisor
+   has made per facility, so provincial can identify
+   sites being under-visited.
+══════════════════════════════════════════════════ */
+function buildSupervisorCoverage(visits) {
+  const el = document.getElementById('supervisor-coverage');
+  if (!el) return;
+  if (!visits.length) { el.innerHTML = ''; return; }
+
+  // Group: supervisor → facility → {count, lastDate}
+  const map = {};
+  visits.forEach(v => {
+    const sup = v.supervisor_name || 'Desconhecido';
+    const fac = v.facility || 'US Desconhecida';
+    if (!map[sup]) map[sup] = {};
+    if (!map[sup][fac]) map[sup][fac] = { count: 0, lastDate: '' };
+    map[sup][fac].count++;
+    if (!map[sup][fac].lastDate || v.visit_date > map[sup][fac].lastDate)
+      map[sup][fac].lastDate = v.visit_date;
+  });
+
+  // Sort supervisors by total visits asc (least active first)
+  const supervisors = Object.entries(map)
+    .map(([sup, facs]) => ({
+      sup,
+      facs: Object.entries(facs).sort((a, b) => a[1].count - b[1].count),
+      total: Object.values(facs).reduce((s, f) => s + f.count, 0),
+    }))
+    .sort((a, b) => a.total - b.total);
+
+  const rows = supervisors.map((s, si) => {
+    const badge = s.total <= 1
+      ? `<span class="sv-badge-warn">${s.total} visita${s.total !== 1 ? 's' : ''}</span>`
+      : `<span class="sv-badge-count">${s.total} visitas</span>`;
+
+    const facRows = s.facs.map(([fac, info]) => {
+      const warn = info.count === 1 ? 'color:#b91c1c' : '';
+      return `<tr class="sv-fac-row">
+        <td style="${warn}">📍 ${fac}</td>
+        <td style="text-align:right;${warn}">${info.count}x</td>
+        <td style="color:#94a3b8;text-align:right">${info.lastDate || '—'}</td>
+      </tr>`;
+    }).join('');
+
+    return `<tr class="sv-sup-row" onclick="this.nextElementSibling && this.nextElementSibling.classList && (() => {
+      const next = this.nextSibling;
+      let cur = this.nextElementSibling;
+      while (cur && cur.classList.contains('sv-fac-row')) { cur.style.display = cur.style.display === 'none' ? '' : 'none'; cur = cur.nextElementSibling; }
+    })()">
+      <td>👤 ${s.sup}</td>
+      <td style="text-align:right">${badge}</td>
+      <td style="text-align:right;color:#94a3b8;font-size:.7rem">${s.facs.length} US</td>
+    </tr>${facRows}`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="analysis-panel">
+      <div class="analysis-panel-hdr" onclick="toggleAnalysisPanel(this)">
+        <h4>👥 Cobertura por Supervisor Distrital</h4>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="analysis-panel-body open">
+        <table class="sv-table">
+          <thead><tr>
+            <th>Supervisor / Unidade Sanitária</th>
+            <th style="text-align:right">Visitas</th>
+            <th style="text-align:right">Última / Nº US</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════
+   PROVINCIAL PANEL 2 — Counselor Improvement Trends
+   For each counselor with 2+ visits, compares the
+   latest score vs the previous visit score and shows
+   a trend indicator (↑ improving / ↓ declining / →).
+══════════════════════════════════════════════════ */
+function buildCounselorTrends(visits) {
+  const el = document.getElementById('counselor-trends');
+  if (!el) return;
+
+  // Group by counselor + facility, sort by date
+  const map = {};
+  visits.forEach(v => {
+    const key = (v.counselor_name || 'Desconhecido') + '||' + (v.facility || '');
+    if (!map[key]) map[key] = [];
+    map[key].push(v);
+  });
+
+  const counselors = Object.entries(map)
+    .map(([key, vs]) => {
+      const sorted = vs.sort((a, b) => (b.visit_date || '').localeCompare(a.visit_date || ''));
+      return { key, visits: sorted };
+    })
+    .filter(c => c.visits.length >= 2);   // only those with 2+ visits
+
+  if (!counselors.length) { el.innerHTML = ''; return; }
+
+  const fmt = v => Math.round((v || 0) * 100) + '%';
+  const tlClass = tl => tl === 'GREEN' ? 'GREEN' : tl === 'YELLOW' ? 'YELLOW' : 'RED';
+
+  // Sort: declining first, then stable, then improving
+  const withDelta = counselors.map(c => {
+    const curr = c.visits[0];
+    const prev = c.visits[1];
+    const delta = (curr.overall_score || 0) - (prev.overall_score || 0);
+    return { c, curr, prev, delta };
+  }).sort((a, b) => a.delta - b.delta);
+
+  const rows = withDelta.map(({ c, curr, prev, delta }) => {
+    const [name, fac] = c.key.split('||');
+    const trendIcon  = delta > 0.02 ? '↑' : delta < -0.02 ? '↓' : '→';
+    const trendClass = delta > 0.02 ? 'trend-up' : delta < -0.02 ? 'trend-down' : 'trend-flat';
+    const deltaStr   = (delta >= 0 ? '+' : '') + Math.round(delta * 100) + '%';
+
+    return `<tr>
+      <td><strong>${name}</strong><br><span style="font-size:.68rem;color:#94a3b8">${fac}</span></td>
+      <td><span class="trend-score ${tlClass(prev.traffic_light)}">${fmt(prev.overall_score)}</span><br>
+          <span style="font-size:.67rem;color:#94a3b8">${prev.visit_date || '—'}</span></td>
+      <td><span class="trend-score ${tlClass(curr.traffic_light)}">${fmt(curr.overall_score)}</span><br>
+          <span style="font-size:.67rem;color:#94a3b8">${curr.visit_date || '—'}</span></td>
+      <td><span class="${trendClass}" style="font-size:1.1rem">${trendIcon}</span>
+          <span class="${trendClass}" style="font-size:.72rem;margin-left:3px">${deltaStr}</span></td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="analysis-panel">
+      <div class="analysis-panel-hdr" onclick="toggleAnalysisPanel(this)">
+        <h4>📈 Evolução por Conselheiro (visitas repetidas)</h4>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div class="analysis-panel-body open">
+        <table class="trend-table">
+          <thead><tr>
+            <th>Conselheiro / US</th>
+            <th>Visita Anterior</th>
+            <th>Visita Actual</th>
+            <th>Tendência</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ── Toggle analysis panel open/close ── */
+function toggleAnalysisPanel(hdr) {
+  hdr.classList.toggle('open');
+  const body = hdr.nextElementSibling;
+  if (body) body.classList.toggle('open');
 }
 
 /* ══════════════════════════════════

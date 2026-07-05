@@ -257,9 +257,43 @@ body { font-family: 'Poppins', sans-serif; background: var(--light); color: var(
 .result-modules { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
 .mod-result     { border-radius: 10px; padding: 8px; font-size: .76rem; font-weight: 600; }
 .mod-result .mod-score { font-size: 1.2rem; font-weight: 800; }
+/* ── Provincial analysis panels ── */
+.analysis-panel { background: var(--white); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+.analysis-panel-hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #1a2b5c; color: #fff; cursor: pointer; user-select: none; }
+.analysis-panel-hdr h4 { font-size: .85rem; font-weight: 700; margin: 0; }
+.analysis-panel-hdr .toggle-icon { font-size: .8rem; opacity: .7; transition: transform .2s; }
+.analysis-panel-hdr.open .toggle-icon { transform: rotate(180deg); }
+.analysis-panel-body { display: none; padding: 0; }
+.analysis-panel-body.open { display: block; }
+/* Supervisor coverage table */
+.sv-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
+.sv-table th { background: #f0f7f7; color: #1a2b5c; font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 2px solid #00b4a8; }
+.sv-table tr.sv-sup-row { background: #f8fafc; cursor: pointer; }
+.sv-table tr.sv-sup-row td { padding: 9px 10px; font-weight: 700; color: #1a2b5c; border-top: 1px solid #e2e8f0; }
+.sv-table tr.sv-fac-row td { padding: 5px 10px 5px 28px; color: #475569; border-top: 1px solid #f1f5f9; font-size: .72rem; }
+.sv-badge-count { background: #00b4a8; color: #fff; border-radius: 20px; padding: 2px 8px; font-size: .7rem; font-weight: 700; }
+.sv-badge-warn  { background: #fee2e2; color: #b91c1c; border-radius: 20px; padding: 2px 8px; font-size: .7rem; font-weight: 700; }
+/* Counselor trends table */
+.trend-table { width: 100%; border-collapse: collapse; font-size: .74rem; }
+.trend-table th { background: #f0f7f7; color: #1a2b5c; font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 2px solid #00b4a8; }
+.trend-table td { padding: 7px 10px; border-top: 1px solid #f1f5f9; color: #334155; }
+.trend-table tr:hover td { background: #f8fafc; }
+.trend-up   { color: #15803d; font-weight: 700; }
+.trend-down { color: #b91c1c; font-weight: 700; }
+.trend-flat { color: #92400e; font-weight: 700; }
+.trend-score { font-weight: 700; font-size: .78rem; }
+.trend-score.GREEN  { color: #15803d; }
+.trend-score.YELLOW { color: #92400e; }
+.trend-score.RED    { color: #b91c1c; }
 .result-sync-msg { font-size: .79rem; padding: 8px 12px; border-radius: 10px; margin-bottom: 13px; font-weight: 600; }
 .sync-ok     { background: #dcfce7; color: #15803d; }
 .sync-queued { background: #fef3c7; color: #92400e; }
+/* ── Failing fields breakdown ── */
+#r-failures { width: 100%; margin-bottom: 14px; text-align: left; }
+.fail-block { border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.fail-block-title { font-size: .76rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.fail-item { font-size: .72rem; line-height: 1.45; padding: 4px 0 4px 10px; border-top: 1px solid rgba(0,0,0,.07); position: relative; }
+.fail-item::before { content: "✗"; position: absolute; left: 0; font-weight: 700; }
 
 /* ══════════════════════════════════
    DASHBOARD (shared)
@@ -600,66 +634,4 @@ body { font-family: 'Poppins', sans-serif; background: var(--light); color: var(
     </div>
     <div class="dash-filter">
       <button class="filter-chip f-all" onclick="filterUpperDash('ALL',this)">Todos</button>
-      <button class="filter-chip"       onclick="filterUpperDash('RED',this)">🔴 Insuf.</button>
-      <button class="filter-chip"       onclick="filterUpperDash('YELLOW',this)">🟡 Em Desenv.</button>
-      <button class="filter-chip"       onclick="filterUpperDash('GREEN',this)">🟢 Bom</button>
-    </div>
-    <div id="upper-dash-visits"></div>
-  </div>
-  </div>
-
-  <!-- ── TAB: Google Sheets ── -->
-  <div id="tab-upper-sheets" class="tab-content">
-  <div class="container">
-    <div class="sheets-panel">
-      <div class="sheets-icon">📊</div>
-      <h3>Base de Dados Central</h3>
-      <p>Todas as visitas de supervisão são guardadas no Google Sheets.<br>Aceda para ver dados de todas as províncias, exportar e analisar.</p>
-      <a class="btn-sheets" href="https://docs.google.com/spreadsheets/d/1mBUjyiU_M35njJMjBbvo9ibZdhoLAwqzMEJWE_xi7rY" target="_blank">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
-        Abrir Google Sheets
-      </a>
-      <p style="margin-top:18px;font-size:.75rem;color:var(--slate)">
-        Separador: <strong>Visits</strong> &nbsp;·&nbsp;
-        ID: <code style="font-size:.7rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">1mBUjyiU_M35njJMjBbvo9ibZdhoLAwqzMEJWE_xi7rY</code>
-      </p>
-    </div>
-  </div>
-  </div>
-
-</div><!-- /app -->
-
-<!-- Result modal -->
-<div id="result-panel">
-  <div class="result-card">
-    <div class="result-emoji" id="r-emoji">🟢</div>
-    <div class="result-score" id="r-score">0%</div>
-    <div class="result-label" id="r-label">BOM</div>
-    <div class="result-meta"  id="r-meta"></div>
-    <div class="result-modules" id="r-modules"></div>
-    <div class="result-sync-msg" id="r-sync-msg"></div>
-    <button class="btn-primary" onclick="closeResult()">Nova Visita</button>
-    <button class="btn-secondary" onclick="closeResult();switchTab('dashboard',document.querySelectorAll('#district-tabs .tab-btn')[1])">Ver Dashboard</button>
-  </div>
-</div>
-
-<!-- Sticky score bar -->
-<div class="score-bar" id="score-bar" style="display:none">
-  <div class="score-bar-modules">
-    <span class="score-chip" id="chip-a">A —</span>
-    <span class="score-chip" id="chip-b">B —</span>
-    <span class="score-chip" id="chip-c">C —</span>
-    <span class="score-chip" id="chip-d">D —</span>
-  </div>
-  <div class="score-overall" id="score-overall">—%</div>
-</div>
-
-<!-- ── JS modules (load order matters) ── -->
-<script src="js/config.js"></script>
-<script src="js/store.js"></script>
-<script src="js/sync.js"></script>
-<script src="js/form.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/app.js"></script>
-</body>
-</html>
+      <button class="filter-chip"       on
