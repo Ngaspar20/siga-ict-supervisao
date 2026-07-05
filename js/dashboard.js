@@ -208,16 +208,22 @@ function buildCounselorTrends(visits) {
 
   if (!counselors.length) { el.innerHTML = ''; return; }
 
-  const fmt = v => Math.round((v || 0) * 100) + '%';
+  // Safe score parser — handles null, undefined, NaN number, and "NaN" string from Sheets
+  const safeScore = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+  const fmt = v => { const n = safeScore(v); return n !== null ? Math.round(n * 100) + '%' : '—%'; };
   const tlClass = tl => tl === 'GREEN' ? 'GREEN' : tl === 'YELLOW' ? 'YELLOW' : 'RED';
 
   // Sort: declining first, then stable, then improving
   const withDelta = counselors.map(c => {
     const curr = c.visits[0];
     const prev = c.visits[1];
-    const delta = (curr.overall_score || 0) - (prev.overall_score || 0);
+    const cs = safeScore(curr.overall_score) ?? 0;
+    const ps = safeScore(prev.overall_score) ?? 0;
+    const delta = cs - ps;
     return { c, curr, prev, delta };
-  }).sort((a, b) => a.delta - b.delta);
+  })
+  .filter(({ curr, prev }) => safeScore(curr.overall_score) !== null || safeScore(prev.overall_score) !== null)
+  .sort((a, b) => a.delta - b.delta);
 
   const rows = withDelta.map(({ c, curr, prev, delta }) => {
     const [name, fac] = c.key.split('||');
