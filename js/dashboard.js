@@ -123,8 +123,9 @@ function buildSupervisorCoverage(visits) {
     if (!map[sup]) map[sup] = {};
     if (!map[sup][fac]) map[sup][fac] = { count: 0, lastDate: '' };
     map[sup][fac].count++;
-    if (!map[sup][fac].lastDate || v.visit_date > map[sup][fac].lastDate)
-      map[sup][fac].lastDate = v.visit_date;
+    const vd = _fmtDate(v.visit_date);
+    if (!map[sup][fac].lastDate || vd > map[sup][fac].lastDate)
+      map[sup][fac].lastDate = vd;
   });
 
   // Sort supervisors by total visits asc (least active first)
@@ -227,9 +228,9 @@ function buildCounselorTrends(visits) {
     return `<tr>
       <td><strong>${name}</strong><br><span style="font-size:.68rem;color:#94a3b8">${fac}</span></td>
       <td><span class="trend-score ${tlClass(prev.traffic_light)}">${fmt(prev.overall_score)}</span><br>
-          <span style="font-size:.67rem;color:#94a3b8">${prev.visit_date || '—'}</span></td>
+          <span style="font-size:.67rem;color:#94a3b8">${_fmtDate(prev.visit_date)}</span></td>
       <td><span class="trend-score ${tlClass(curr.traffic_light)}">${fmt(curr.overall_score)}</span><br>
-          <span style="font-size:.67rem;color:#94a3b8">${curr.visit_date || '—'}</span></td>
+          <span style="font-size:.67rem;color:#94a3b8">${_fmtDate(curr.visit_date)}</span></td>
       <td><span class="${trendClass}" style="font-size:1.1rem">${trendIcon}</span>
           <span class="${trendClass}" style="font-size:.72rem;margin-left:3px">${deltaStr}</span></td>
     </tr>`;
@@ -265,8 +266,16 @@ function toggleAnalysisPanel(hdr) {
 /* ══════════════════════════════════
    SHARED VISIT CARD
 ══════════════════════════════════ */
+function _fmtDate(d) {
+  if (!d) return '—';
+  // Handle ISO timestamps: "2026-07-04T22:00:00.000Z" → "2026-07-04"
+  if (typeof d === 'string' && d.includes('T')) return d.slice(0, 10);
+  return d;
+}
+
 function renderVisitCard(v, idx, prefix) {
-  const fmt      = val => Math.round((val || 0) * 100) + '%';
+  const score    = (typeof v.overall_score === 'number' && !isNaN(v.overall_score)) ? v.overall_score : null;
+  const fmt      = val => (typeof val === 'number' && !isNaN(val)) ? Math.round(val * 100) + '%' : '—%';
   const barColor = sc  => sc >= 0.80 ? '#22c55e' : sc >= 0.60 ? '#f59e0b' : '#dc3545';
   const tlLbl    = v.traffic_light === 'GREEN' ? 'BOM'
                  : v.traffic_light === 'YELLOW' ? 'EM DESENVOLVIMENTO'
@@ -283,13 +292,13 @@ function renderVisitCard(v, idx, prefix) {
           </div>
           <div class="visit-sub">
             ${v.counselor_name || '—'} &nbsp;·&nbsp;
-            ${v.visit_date     || '—'} &nbsp;·&nbsp;
+            ${_fmtDate(v.visit_date)} &nbsp;·&nbsp;
             ${v.district       || ''} &nbsp;·&nbsp;
             ${v.supervisor_name || ''}
           </div>
         </div>
         <div class="visit-score-col">
-          <div class="visit-score-big ${v.traffic_light}">${fmt(v.overall_score)}</div>
+          <div class="visit-score-big ${v.traffic_light}">${fmt(score)}</div>
           <div class="visit-tl-label  ${v.traffic_light}">${tlLbl}</div>
         </div>
       </div>
@@ -330,8 +339,7 @@ function _updateStats(prefix, visits) {
   el(`${prefix}-total`).textContent = visits.length;
   el(`${prefix}-red`).textContent   = visits.filter(v => v.traffic_light === 'RED').length;
   el(`${prefix}-yel`).textContent   = visits.filter(v => v.traffic_light === 'YELLOW').length;
-  el(`${prefix}-grn`).textContent   = visits.filter(v => v.traffic_light === 'GREEN').length;
-}
+  el(`${prefix}-grn`).textContent   = visits.filter(v => v.traffic_light === 'GREEN').length;}
 
 function _setActiveFilter(selector, btn, f) {
   document.querySelectorAll(selector).forEach(b => b.className = 'filter-chip');
@@ -339,5 +347,5 @@ function _setActiveFilter(selector, btn, f) {
 }
 
 function _emptyState(icon, msg) {
-  return `<div class="empty-dash"><div class="empty-icon">${icon}</div><p>${msg}</p></div>`;
+  return '<div class="empty-dash"><div class="empty-icon">' + icon + '</div><p>' + msg + '</p></div>';
 }
